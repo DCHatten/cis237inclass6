@@ -10,6 +10,7 @@ namespace cis237inclass6.Controllers
     {
         public ActionResult Index()
         {
+            ViewBag.FooBar = "Foo Bar";
             return View();
         }
 
@@ -26,5 +27,12 @@ namespace cis237inclass6.Controllers
 
             return View();
         }
+
+        //Here is an action result for basic string content
+        public ActionResult Content()
+        {
+            return Content("Foo bar");
+        }
+
     }
 }
