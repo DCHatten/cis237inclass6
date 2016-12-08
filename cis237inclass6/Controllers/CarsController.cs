@@ -10,6 +10,7 @@ using cis237inclass6.Models;
 
 namespace cis237inclass6.Controllers
 {
+    [Authorize]
     public class CarsController : Controller
     {
         private CarsTestEntities db = new CarsTestEntities();
@@ -17,7 +18,58 @@ namespace cis237inclass6.Controllers
         // GET: Cars
         public ActionResult Index()
         {
-            return View(db.Cars.ToList());
+            //Setup a variable to hold the Cars data set
+            DbSet<Car> CarsToSearch = db.Cars;
+
+            //Setup some strings to hold the data that might be in the session
+            string filterMake = "";
+            string filterMin = "";
+            string filterMax = "";
+
+            //Define a min and a max for the cylinders
+            int min = 0;
+            int max = 16;
+
+            //Check to see if there is a value in the session, and if there is, assign it to the variable that we setup to hold the value
+            if (//Session["make"] != null &&
+                !String.IsNullOrWhiteSpace((string)Session["make"]))
+            {
+                filterMake = (string)Session["make"];
+            }
+
+            if (//Session["min"] != null &&
+                !String.IsNullOrWhiteSpace((string)Session["min"]))
+            {
+                filterMin = (string)Session["min"];
+                min = Int32.Parse(filterMin);
+            }
+
+            if (//Session["max"] != null &&
+                !String.IsNullOrWhiteSpace((string)Session["max"]))
+            {
+                filterMax = (string)Session["max"];
+                max = Int32.Parse(filterMax);
+            }
+
+            //Do the filter on the CarsToSear Dataset. Use the where that we used before when doing EF work,
+            //only this time send in more lamda expressions to narrow it down further.  Since we setup default
+            //values for each of the filter parameters; min, max, and filtermake; we can count on this always
+            //running with no errors.
+            IEnumerable<Car> filtered = CarsToSearch.Where(car => car.cylinders >= min &&
+                                                                  car.cylinders <= max &&
+                                                                  car.make.Contains(filterMake));
+
+            //Place the string representation of the values in the session into the ViewBag so that they can be
+            //retrieved and displayed on the view.
+            ViewBag.filterMake = filterMake;
+            ViewBag.filterMin = filterMin;
+            ViewBag.filterMax = filterMax;
+
+            //Return the viewwith a filtered selection of the cars.
+            return View(filtered.ToList());
+
+            //This is what used to be returned before a filter was setup.
+            //return View(db.Cars.ToList());
         }
 
         // GET: Cars/Details/5
@@ -120,6 +172,29 @@ namespace cis237inclass6.Controllers
         public ActionResult Json()
         {            
             return Json(db.Cars.ToList(), JsonRequestBehavior.AllowGet);
+        }
+
+        //This is the filter method. It will take tin the data submitted from the
+        //for and store it in the session so we can access it later.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Filter()
+        {
+            //Get the form data that was sent out of the Request object
+            //The string that is used as a key to get the data matches the
+            //name property of the form control. (for us this is the first parameter)
+            String make = Request.Form.Get("make");
+            String min = Request.Form.Get("min");
+            String max = Request.Form.Get("max");
+
+            //Store the form data into the session so that it can be retrieved later on
+            Session["make"] = make;
+            Session["min"] = min;
+            Session["max"] = max;
+
+            //Redirect the user to the index page. We will do the work of actually
+            //filtering the list in the index method.
+            return RedirectToAction("Index");
         }
 
         protected override void Dispose(bool disposing)
